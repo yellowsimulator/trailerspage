@@ -1,33 +1,76 @@
 """
-sample code for finite element
+sample code for finite element method solving
+-u''(x) = f(x); u(0) = 0; u(1) = 0, x in [0,1]
 """
-from sympy import *
+import pylab as plt
+from sympy import diff,Symbol,sin, lambdify, pi
+import scipy.integrate as integrate
+from scipy.integrate import quad
 import numpy as np
-def Lagrange_polynomial(x, i, points):
-    """
-    Return the Lagrange polynomial no. i.
-    points are the interpolation points, and x can be a number or
-    a sympy.Symbol object (for symbolic representation of the
-    polynomial). When x is a sympy.Symbol object, it is
-    normally desirable (for nice output of polynomial expressions)
-    to let points consist of integers or rational numbers in sympy.
-    """
-    p = 1
-    for k, point in enumerate(points) :
-        if k != i:
-            p *= (x - points[k])/(points[i] - points[k])
-    return p
+from numpy.linalg import inv
 
-
+N = 5
 x = Symbol('x')
-dx = 0.1
-N = 1./dx
-xr = np.linspace(0,1,N)
-points=list(xr)
-ids=[points.index(j) for j in points]
-i = ids[0]
-
-phi = Lagrange_polynomial(x, i, points)
+def phi(x,k):
+    """
+    basis functions
+    """
+    return sin( (k+1)*pi*x )
 
 
-A[i,j] = integrate(diff( phi  ))
+def diff_phi(phi,x,k):
+    """
+    derivative of basis function
+    """
+    return diff(phi(x,k),x)
+
+
+def f(x):
+    """
+    right hand side of
+    -u''(x) = f(x)
+    """
+    return x
+    
+    
+def u_e(x):
+    """
+    Exct solution of 
+    -u''(x) = f(x); u(0)=0; u(1)=0
+    x in [0,1]
+    """
+    return (-1./6)*x**3+(1./6)*x
+
+#construct matrix A and vector b
+A = np.zeros((N,N))
+b = np.zeros(N)
+for i in range(N):
+    for j in range(N):
+        diff_phi_i = lambdify(x,diff_phi(phi,x,i))
+        diff_phi_j = lambdify(x,diff_phi(phi,x,j))
+        phi_j = lambdify(x,phi(x,j))
+        A[i,j]= quad(lambda x: diff_phi_i(x)*diff_phi_j(x), 0,1)[0]
+        b[j] = quad(lambda x: phi(x,j)*f(x), 0,1)[0]
+        
+#compute C and the numerical solution u(x)
+m = range(N)
+C = inv(A).dot(b)   
+u = sum([C[i]*phi(x,k) for i, k in zip(m,m) ])
+u = lambdify(x,u,'numpy')
+
+#plot solution 
+z = np.linspace(0,1,N)
+ze = np.linspace(0,1,1000)
+
+plt.plot(ze,u_e(ze),z,u(z))
+plt.legend(['exact', 'numerical'])
+plt.title('Exact solution vs numerical solution for N={}'.format(N))
+plt.xlabel('x')
+plt.ylabel('u(x)')
+plt.show()
+
+
+
+
+
+
