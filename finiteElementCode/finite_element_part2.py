@@ -2,7 +2,7 @@
 sample code for finite element method solving
 -u''(x) = f(x); u(0) = 0; u(1) = 0, x in [0,1]
 """
-import pylab as plt
+import matplotlib.pylab as plt
 from sympy import diff,Symbol,sin, lambdify, pi
 import scipy.integrate as integrate
 from scipy.integrate import quad
@@ -48,7 +48,6 @@ for i in range(N):
     for j in range(N):
         diff_phi_i = lambdify(x,diff_phi(phi,x,i))
         diff_phi_j = lambdify(x,diff_phi(phi,x,j))
-        phi_j = lambdify(x,phi(x,j))
         A[i,j]= quad(lambda x: diff_phi_i(x)*diff_phi_j(x), 0,1)[0]
         b[j] = quad(lambda x: phi(x,j)*f(x), 0,1)[0]
         
