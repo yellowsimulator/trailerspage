@@ -12,7 +12,9 @@ import scipy.integrate as integrate
 from scipy.integrate import quad
 import numpy as np
 from numpy.linalg import inv
-
+from scitools.std import movie
+#from scipy import *
+import moviepy.editor as mp
 N = 3
 x = Symbol('x')
 def phi(x,k):
@@ -38,37 +40,46 @@ def u_e(x):
     """
     return (-1./6)*x**3+(1./6)*x
 
-#construct matrix A and vector b
-A = np.zeros((N,N))
-b = np.zeros(N)
-for i in range(N):
-    for j in range(N):
-        diff_phi_i = lambdify(x,diff(x,phi(x,i)))
-        diff_phi_j = lambdify(x,diff(x,phi(x,j)))
-        A[i,j]= quad(lambda x: diff_phi_i(x)*diff_phi_j(x), 0,1)[0]
-        b[j] = quad(lambda x: phi(x,j)*f(x), 0,1)[0]
+
+def solution(N):
+    A = np.zeros((N,N))
+    b = np.zeros(N)
+    for i in range(N):
+        for j in range(N):
+            diff_phi_i = lambdify(x, diff(phi(x,i)))
+            diff_phi_j = lambdify(x, diff(phi(x,j)))
+            A[i,j]= quad(lambda x: diff_phi_i(x)*diff_phi_j(x), 0,1)[0]
+            b[j] = quad(lambda x: phi(x,j)*f(x), 0,1)[0]
         
-#compute C and the numerical solution u(x)
-C = inv(A).dot(b)   
-u = sum([C[i]*phi(x,i) for i in range(N) ])
-u = lambdify(x,u,'numpy')
+    #compute C and the numerical solution u(x)
+    C = inv(A).dot(b)   
+    u = sum([C[i]*phi(x,i) for i in range(N) ])
+    u = lambdify(x,u,'numpy')
+    return u
 
 #plot solution 
-z = np.linspace(0,1,N)
-ze = np.linspace(0,1,1000)
+def plot_solution(N):
+    z = np.linspace(0,1,N)
+    ze = np.linspace(0,1,1000)
+    u = solution(N)
+    plt.plot(ze,u_e(ze),z,u(z))
+    plt.legend(['exact', 'numerical'])
+    plt.title('Exact solution vs numerical solution for N={}'.format(N))
+    plt.xlabel('x')
+    plt.ylabel('u(x)')
+    plt.savefig('figures/{}'.format(N))
+    plt.cla()
+    plt.clf()
+    
+    #plt.show()
+#for N in range(1,21):
+    #plot_solution(N)
+    
+    
+def animate():
+    movie('figs/*.png',fps=1,output_file='vid.gif')
+    clip = mp.VideoFileClip("vid.gif")
+    clip.write_videofile("vid.mp4")
 
-#plt.plot(ze,u_e(ze),z,u(z))
-plt.plot(ze,u_e(ze))
-#plt.legend(['exact', 'numerical'])
-#plt.legend(['exact solution'])
-#plt.title('Exact solution vs numerical solution for N={}'.format(N))
-plt.title(r"Exact solution of $-u^{\prime\prime}(x) = x,\quad u(0)=u(1)=0$")
-plt.xlabel('x')
-plt.ylabel('u(x)')
-plt.show()
-
-
-
-
-
+animate()
 
